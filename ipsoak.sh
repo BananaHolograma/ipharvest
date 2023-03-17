@@ -10,6 +10,7 @@ DATA_SOURCE=''
 DATA_SOURCE_TYPE='text'
 MODE='both'
 GEOLOCATION=0
+REMOVE_DUPLICATES=0
 IP4_MATCHES=''
 IP6_MATCHES=''
 GREP_COMMAND='grep' # GNU Linux grep command by default
@@ -33,6 +34,7 @@ EXAMPLES:
 OPTIONS:
     -s, --source                      Choose the source data to extract ips from
     -m  --mode <type>                 Choose the mode of extraction (ipv4,ipv6,both)
+    -u  --unique                      Remove duplicated matches      
     -h  --help                        Print help information
         --geo                         Geolocate all the ip matches
 EOF
@@ -91,7 +93,6 @@ extract_ipv6_from_source() {
 
     elif [ "$source_type" = 'url' ]; then
         get_ipv6_from_url "$source"
-       
     else  
         echo -e "[ FAILED ] We couldn't discover the data source type, aborting operation..."
         exit 1
@@ -100,12 +101,12 @@ extract_ipv6_from_source() {
 
 get_ipv4_from_file() {
     local file=$1
-    IP4_MATCHES=$($GREP_COMMAND  -Poh "$IP4_REGEX" "$file")
+    IP4_MATCHES=$($GREP_COMMAND  -Pohw "$IP4_REGEX" "$file")
 }
 
 get_ipv4_from_text() {
     local text=$1
-    IP4_MATCHES=$(echo "$text" | $GREP_COMMAND -Poh "$IP4_REGEX")
+    IP4_MATCHES=$(echo "$text" | $GREP_COMMAND -Pohw "$IP4_REGEX")
 }
 
 get_ipv4_from_url() {
@@ -142,12 +143,12 @@ get_ipv6_from_url() {
 
 get_ipv6_from_file() {
     local file=$1
-    IP6_MATCHES=$($GREP_COMMAND  -Poh "$IP6_REGEX" "$file")
+    IP6_MATCHES=$($GREP_COMMAND  -Pohw "$IP6_REGEX" "$file")
 }
 
 get_ipv6_from_text() {
     local file=$1
-    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | $GREP_COMMAND  -Poh "$IP6_REGEX")
+    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | $GREP_COMMAND  -Pohw "$IP6_REGEX")
 }
 
 geolocate_ip() { 
@@ -210,18 +211,20 @@ fi
 for arg in "$@"; do
 shift
     case "$arg" in
-        '--geo')      set -- "$@" '-g'   ;;
-        '--source')      set -- "$@" '-s'   ;;
+        '--geo')       set -- "$@" '-g'   ;;
+        '--source')    set -- "$@" '-s'   ;;
+        '--unique')    set -- "$@" '-u'   ;;
         '--mode')      set -- "$@" '-g'   ;;
         '--help')      set -- "$@" '-h'   ;;
         *)             set -- "$@" "$arg" ;;
     esac
 done
 
-while getopts ":s:m:gh:" arg; do
+while getopts ":s:m:ugh:" arg; do
     case $arg in
         s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
+        u) REMOVE_DUPLICATES=1;;
         g) GEOLOCATION=1;;
         h | *)
             show_help
@@ -230,15 +233,31 @@ while getopts ":s:m:gh:" arg; do
 done
 shift $(( OPTIND - 1))
 
-if [ "$MODE" = 'ipv4' ]; then
+case $MODE in 
+  ipv4)
     extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-elif [ "$MODE" = 'ipv6' ]; then 
+    ;;
+  ipv6) 
     extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-else 
+    ;;
+  both) 
     extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
     extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-fi 
+    ;;
+  *) 
+    echo -e "The selected mode $MODE is not supported"
+    exit 1
+    ;; 
+esac
 
 if [ $GEOLOCATION -eq 1 ]; then 
     echo 'geo'
+fi
+
+if [ "$REMOVE_DUPLICATES" -eq 1 ]; then 
+    [[ -z $IP4_MATCHES ]] \
+        && IP4_MATCHES=$(echo "$IP4_MATCHES" | sort -u)
+
+    [[ -z $IP6_MATCHES ]] \
+        && IP6_MATCHES=$(echo "$IP6_MATCHES" | sort -u)
 fi
