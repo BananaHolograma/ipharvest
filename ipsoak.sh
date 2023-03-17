@@ -12,6 +12,12 @@ MODE='ipv4'
 GEOLOCATION=0
 IP4_MATCHES=''
 IP6_MATCHES=''
+GREP_COMMAND='grep' # GNU Linux grep command by default
+
+if [[ $OSTYPE == 'darwin'* ]]; then 
+    # In MacOS systems we need to use the ggrep command to have the same behaviour as GNU/Linux grep
+    GREP_COMMAND='ggrep'
+fi
 ### ###
 
 show_help() {
@@ -94,12 +100,12 @@ extract_ipv6_from_source() {
 
 get_ipv4_from_file() {
     local file=$1
-    IP4_MATCHES=$(grep -E "$IP4_REGEX" "$file")
+    IP4_MATCHES=$($GREP_COMMAND  -Poh "$IP4_REGEX" "$file")
 }
 
 get_ipv4_from_text() {
     local text=$1
-    IP4_MATCHES=$(echo "$text" | grep -E "$IP4_REGEX")
+    IP4_MATCHES=$(echo "$text" | $GREP_COMMAND -Poh "$IP4_REGEX")
 }
 
 get_ipv4_from_url() {
@@ -136,12 +142,12 @@ get_ipv6_from_url() {
 
 get_ipv6_from_file() {
     local file=$1
-    IP6_MATCHES=$(grep -E "$IP6_REGEX" "$file")
+    IP6_MATCHES=$($GREP_COMMAND  -Poh "$IP6_REGEX" "$file")
 }
 
 get_ipv6_from_text() {
     local file=$1
-    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | grep -E "$IP6_REGEX")
+    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | $GREP_COMMAND  -Poh "$IP6_REGEX")
 }
 
 
@@ -210,6 +216,7 @@ shift $(( OPTIND - 1))
 
 if [ "$MODE" = 'ipv4' ]; then
     extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+
 elif [ "$MODE" = 'ipv6' ]; then 
     extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
 else 
