@@ -2,6 +2,18 @@
 
 set -euo pipefail
 
+### GLOBALS ###
+IP4_REGEX='(?!0|22[4-9]|23[0-9])((\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])'
+IP6_REGEX='([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,6}:([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,5}:([0-9a-fA-F]{1,4}:){0,7}:([0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,4}:([0-9a-fA-F]{1,4}:){0,8}:([0-9a-fA-F]{1,4}:){0,4}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,3}:([0-9a-fA-F]{1,4}:){0,9}:([0-9a-fA-F]{1,4}:){0,3}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,2}:([0-9a-fA-F]{1,4}:){0,10}:([0-9a-fA-F]{1,4}:){0,2}[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,1}:([0-9a-fA-F]{1,4}:){0,11}:([0-9a-fA-F]{1,4}:){0,1}[0-9a-fA-F]{1,4}$|^:((:[0-9a-fA-F]{1,4}){1,7}|:)'
+
+DATA_SOURCE=''
+DATA_SOURCE_TYPE='text'
+MODE='ipv4'
+GEOLOCATION=0
+IP4_MATCHES=''
+IP6_MATCHES=''
+### ###
+
 show_help() {
     cat <<'EOF'
 USAGE:
@@ -22,7 +34,7 @@ EOF
 
 data_source_is_empty() {
     echo -e "You need to provide a valid source of data (file, text or url). Example: ipsoak -s log.dat"
-    exit 1;
+    exit 1
 }
 
 to_lowercase() {
@@ -36,15 +48,102 @@ is_url() {
     [[ $url =~ $regex ]]
 }
 
+command_exists() {
+    local COMMAND=$1
+
+    [[ -n "$(command -v "$COMMAND")" ]]
+  }
+
 extract_ipv4_from_source() {
     local source=$1
     local source_type=$2
+
+    if [ "$source_type" = 'file' ]; then
+        get_ipv4_from_file "$source"
+
+    elif [ "$source_type" = 'text' ]; then
+        get_ipv4_from_text "$source"
+
+    elif [ "$source_type" = 'url' ]; then
+        get_ipv4_from_url "$source"
+       
+    else  
+        echo -e "[ FAILED ] We couldn't discover the data source type, aborting operation..."
+        exit 1
+    fi
 }
 
 extract_ipv6_from_source() {
     local source=$1
     local source_type=$2
+
+    if [ "$source_type" = 'file' ]; then
+        get_ipv6_from_file "$source"
+
+    elif [ "$source_type" = 'text' ]; then
+        get_ipv6_from_text "$source"
+
+    elif [ "$source_type" = 'url' ]; then
+        get_ipv6_from_url "$source"
+       
+    else  
+        echo -e "[ FAILED ] We couldn't discover the data source type, aborting operation..."
+        exit 1
+    fi
 }
+
+get_ipv4_from_file() {
+    local file=$1
+    IP4_MATCHES=$(grep -E "$IP4_REGEX" "$file")
+}
+
+get_ipv4_from_text() {
+    local text=$1
+    IP4_MATCHES=$(echo "$text" | grep -E "$IP4_REGEX")
+}
+
+get_ipv4_from_url() {
+    local url=$1
+
+     if command_exists 'curl'; then 
+        curl -ksLo downloaded_file "$url" \
+            && get_ipv4_from_file downloaded_file
+
+    elif command_exists 'wget'; then 
+        wget -O download_file "$url" \
+            && get_ipv4_from_file downloaded_file
+
+    else 
+        echo -e "We couldn't fetch the source from $url because commands wget and curl are not available in your system"
+    fi
+}
+
+get_ipv6_from_url() {
+    local url=$1
+
+     if command_exists 'curl'; then 
+        curl -ksLo downloaded_file "$url" \
+            && get_ipv6_from_file downloaded_file
+
+    elif command_exists 'wget'; then 
+        wget -O download_file "$url" \
+            && get_ipv6_from_file downloaded_file
+
+    else 
+        echo -e "We couldn't fetch the source from $url because commands wget and curl are not available in your system"
+    fi
+}
+
+get_ipv6_from_file() {
+    local file=$1
+    IP6_MATCHES=$(grep -E "$IP6_REGEX" "$file")
+}
+
+get_ipv6_from_text() {
+    local file=$1
+    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | grep -E "$IP6_REGEX")
+}
+
 
 set_mode() {
     declare -a available_modes=("ipv4" "ipv6" "both")
@@ -71,25 +170,20 @@ set_data_source() {
     [[ -z $source ]] && data_source_is_empty
 
     if [ -f "$source" ]; then
-        DATA_SOURCE=$source
         DATA_SOURCE_TYPE='file'
     fi 
     
     if is_url "$source"; then 
-        DATA_SOURCE=$source
         DATA_SOURCE_TYPE='url'
-   fi
+    fi
+
+    DATA_SOURCE=$source
 }
 
 ## Check if no arguments are provided to the script
 if [ "$#" -eq 0 ]; then
     data_source_is_empty
 fi
-
-DATA_SOURCE=''
-DATA_SOURCE_TYPE='text'
-MODE='ipv4'
-GEOLOCATION=0
 
 for arg in "$@"; do
 shift
