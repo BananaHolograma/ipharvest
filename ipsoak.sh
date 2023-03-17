@@ -9,14 +9,14 @@ USAGE:
 
 EXAMPLES:
     ipsoak --source data.txt
-    ipsoak -s "192.168.1.1/24,10.10.10.25,2404:6800:4008:c02::8b" -m ipv4
+    ipsoak -s "192.168.1.1/24,10.10.10.25,2404:6800:4008:c02::8b" -m ipv6
     ipsoak --geo -s https://example.com/log.txt
 
 OPTIONS:
     -s, --source                      Choose the source data to extract ips from
     -m  --mode <type>                 Choose the mode of extraction (ipv4,ipv6,both)
     -h  --help                        Print help information
-        --geo                         Geolocate all the matches
+        --geo                         Geolocate all the ip matches
 EOF
 }
 
@@ -25,24 +25,32 @@ data_source_is_empty() {
     exit 1;
 }
 
+to_lowercase() {
+    echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+is_url() {
+    local url=$1
+    regex='(https?|ftp|file)://[-[:alnum:]\+&@#/%?=~_|!:,.;]*[-[:alnum:]\+&@#/%=~_|]'
+
+    [[ $url =~ $regex ]]
+}
+
 extract_ipv4_from_source() {
     local source=$1
+    local source_type=$2
 }
 
 extract_ipv6_from_source() {
     local source=$1
+    local source_type=$2
 }
-
-
-## Check if no arguments are provided to the script
-if [ "$#" -eq 0 ]; then
-    data_source_is_empty
-fi
 
 set_mode() {
     declare -a available_modes=("ipv4" "ipv6" "both")
     declare -i valid_mode=0
-    local selected_mode=$1
+    local selected_mode
+    selected_mode=$(to_lowercase "$1")
 
     for mode in "${available_modes[@]}"; do
         if [ "$mode" = "$selected_mode" ]; then
@@ -57,7 +65,29 @@ set_mode() {
     fi
 }
 
+set_data_source() {
+    local source=$1
+
+    [[ -z $source ]] && data_source_is_empty
+
+    if [ -f "$source" ]; then
+        DATA_SOURCE=$source
+        DATA_SOURCE_TYPE='file'
+    fi 
+    
+    if is_url "$source"; then 
+        DATA_SOURCE=$source
+        DATA_SOURCE_TYPE='url'
+   fi
+}
+
+## Check if no arguments are provided to the script
+if [ "$#" -eq 0 ]; then
+    data_source_is_empty
+fi
+
 DATA_SOURCE=''
+DATA_SOURCE_TYPE='text'
 MODE='ipv4'
 GEOLOCATION=0
 
@@ -74,7 +104,7 @@ done
 
 while getopts ":s:m:gh:" arg; do
     case $arg in
-        s) DATA_SOURCE=$OPTARG;;
+        s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
         g) GEOLOCATION=1;;
         h | *)
@@ -84,4 +114,11 @@ while getopts ":s:m:gh:" arg; do
 done
 shift $(( OPTIND - 1))
 
-[[ -z $DATA_SOURCE ]] && data_source_is_empty
+if [ "$MODE" = 'ipv4' ]; then
+    extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+elif [ "$MODE" = 'ipv6' ]; then 
+    extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+else 
+    extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+    extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+fi 
