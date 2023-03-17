@@ -20,14 +20,42 @@ OPTIONS:
 EOF
 }
 
+data_source_is_empty() {
+    echo -e "You need to provide a valid source of data (file, text or url). Example: ipsoak -s log.dat"
+    exit 1;
+}
+
 extract_ipv4_from_source() {
     local source=$1
 }
 
+extract_ipv6_from_source() {
+    local source=$1
+}
+
+
+## Check if no arguments are provided to the script
 if [ "$#" -eq 0 ]; then
-    echo -e "You need to provide a valid source of data (file, text or url). Example > [ipsoak -s log.dat]"
-    exit 1;
+    data_source_is_empty
 fi
+
+set_mode() {
+    declare -a available_modes=("ipv4" "ipv6" "both")
+    declare -i valid_mode=0
+    local selected_mode=$1
+
+    for mode in "${available_modes[@]}"; do
+        if [ "$mode" = "$selected_mode" ]; then
+            MODE=$mode
+            valid_mode=1
+            break
+        fi
+    done
+
+    if [ $valid_mode -eq 0 ]; then
+        echo -e "The selected mode $selected_mode is invalid, allowed values are: ${available_modes[*]}. The default mode $MODE will be used instead"
+    fi
+}
 
 DATA_SOURCE=''
 MODE='ipv4'
@@ -47,14 +75,13 @@ done
 while getopts ":s:m:gh:" arg; do
     case $arg in
         s) DATA_SOURCE=$OPTARG;;
-        m) MODE=$OPTARG;;
+        m) set_mode "$OPTARG";;
         g) GEOLOCATION=1;;
         h | *)
             show_help
         ;;
     esac
-
 done
 shift $(( OPTIND - 1))
 
-echo "$DATA_SOURCE, $MODE, $GEOLOCATION"
+[[ -z $DATA_SOURCE ]] && data_source_is_empty
