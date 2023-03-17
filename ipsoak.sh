@@ -8,7 +8,7 @@ IP6_REGEX='((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){6}(?:
 
 DATA_SOURCE=''
 DATA_SOURCE_TYPE='text'
-MODE='ipv4'
+MODE='both'
 GEOLOCATION=0
 IP4_MATCHES=''
 IP6_MATCHES=''
@@ -150,6 +150,22 @@ get_ipv6_from_text() {
     IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | $GREP_COMMAND  -Poh "$IP6_REGEX")
 }
 
+geolocate_ip() { 
+       # The user agent only needs to have this format, it does not need to be a real domain or ip
+    local ip_address=$1
+    local user_agent='keycdn-tools:http://10.10.10.25'
+    local url="https://tools.keycdn.com/geo.json?host=$ip_address"
+
+    if command_exists 'curl'; then 
+        curl -s -H "User-Agent: $user_agent" "$url"
+
+    elif command_exists 'wget'; then 
+        wget -U "User-Agent: $user_agent" "$url"
+    else 
+        echo -e "We couldn't geolocate the IP $ip_address because commands wget and curl are not available in your system"
+    fi    
+}
+
 
 set_mode() {
     declare -a available_modes=("ipv4" "ipv6" "both")
@@ -216,10 +232,13 @@ shift $(( OPTIND - 1))
 
 if [ "$MODE" = 'ipv4' ]; then
     extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-    echo "IPS: $IP4_MATCHES"
 elif [ "$MODE" = 'ipv6' ]; then 
     extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
 else 
     extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
     extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
 fi 
+
+if [ $GEOLOCATION -eq 1 ]; then 
+    echo 'geo'
+fi
