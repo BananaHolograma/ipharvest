@@ -46,15 +46,9 @@ done
 
 while getopts ":s:m:gh:" arg; do
     case $arg in
-        s)
-            DATA_SOURCE=$OPTARG
-        ;;
-        m)
-            MODE=$OPTARG
-        ;;
-        g)
-            GEOLOCATION=1
-        ;;
+        s) DATA_SOURCE=$OPTARG;;
+        m) MODE=$OPTARG;;
+        g) GEOLOCATION=1;;
         h | *)
             show_help
         ;;
