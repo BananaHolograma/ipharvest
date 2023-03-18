@@ -19,6 +19,11 @@ GREP_COMMAND='grep' # GNU Linux grep command by default
 if [[ $OSTYPE == 'darwin'* ]]; then 
     # In MacOS systems we need to use the ggrep command to have the same behaviour as GNU/Linux grep
     GREP_COMMAND='ggrep'
+
+    if [[ -z "$GREP_COMMAND" ]]; then
+        echo -e "ERROR: GNU grep is required. Install it with 'brew install grep'." >&2
+        exit 1
+    fi
 fi
 ### ###
 
@@ -211,37 +216,49 @@ set_data_source() {
 }
 
 calculate_geolocation() {
-    if [ $GEOLOCATION -eq 1 ]; then
-        if ! is_empty "$IP4_MATCHES"; then
-            readarray -t ip_addreses <<< "$IP4_MATCHES"
+    if ! is_empty "$IP4_MATCHES"; then
+        readarray -t ip_addreses <<< "$IP4_MATCHES"
 
-            for ip in "${ip_addreses[@]}"; do
-                if [[ ! -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
-                    IP_GEOLOCATION_DICTIONARY[$ip]=$(geolocate_ip "$ip")
-                fi
-            done 
-        fi
+        for ip in "${ip_addreses[@]}"; do
+            if [[ ! -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
+                IP_GEOLOCATION_DICTIONARY[$ip]=$(geolocate_ip "$ip")
+            fi
+        done 
+    fi
 
-        if ! is_empty "$IP6_MATCHES"; then 
-            readarray -t <<< "$IP6_MATCHES"
+    if ! is_empty "$IP6_MATCHES"; then 
+        readarray -t <<< "$IP6_MATCHES"
 
-            for ip in "${MAPFILE[@]}"; do 
-                if [[ ! -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
-                    IP_GEOLOCATION_DICTIONARY[$ip]=$(geolocate_ip "$ip")
-                fi
-            done 
-        fi
+        for ip in "${MAPFILE[@]}"; do 
+            if [[ ! -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
+                IP_GEOLOCATION_DICTIONARY[$ip]=$(geolocate_ip "$ip")
+            fi
+        done 
     fi
 }
 
 remove_duplicates() {
-    if [ "$REMOVE_DUPLICATES" -eq 1 ]; then 
-        ! is_empty \
-            && IP4_MATCHES=$(echo "$IP4_MATCHES" | sort -u)
+    local text=$1
+    echo "$text" | sort -u --numeric-sort
+}
 
-        ! is_empty \
-            && IP6_MATCHES=$(echo "$IP6_MATCHES" | sort -u)
-    fi
+extract_ip_addreses_based_on_mode() {
+    case $MODE in 
+    ipv4)
+        extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+        ;;
+    ipv6) 
+        extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+        ;;
+    both) 
+        extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+        extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
+        ;;
+    *) 
+        echo -e "The selected mode $MODE is not supported"
+        exit 1
+        ;; 
+    esac
 }
 
 ## Check if no arguments are provided to the script
@@ -274,22 +291,13 @@ while getopts ":s:m:ugh:" arg; do
 done
 shift $(( OPTIND - 1))
 
-case $MODE in 
-  ipv4)
-    extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-    ;;
-  ipv6) 
-    extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-    ;;
-  both) 
-    extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-    extract_ipv6_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
-    ;;
-  *) 
-    echo -e "The selected mode $MODE is not supported"
-    exit 1
-    ;; 
-esac
+extract_ip_addreses_based_on_mode
 
-remove_duplicates
-calculate_geolocation
+if [ "$REMOVE_DUPLICATES" -eq 1 ]; then 
+    IP4_MATCHES=$(remove_duplicates "$IP4_MATCHES")
+    IP6_MATCHES=$(remove_duplicates "$IP6_MATCHES")
+fi
+
+if [ $GEOLOCATION -eq 1 ]; then
+    calculate_geolocation
+fi
