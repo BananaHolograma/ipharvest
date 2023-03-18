@@ -10,7 +10,6 @@ DATA_SOURCE=''
 DATA_SOURCE_TYPE='text'
 MODE='both'
 declare -i GEOLOCATION=0
-declare -i REMOVE_DUPLICATES=0
 IP4_MATCHES=''
 IP6_MATCHES=''
 declare -A IP_GEOLOCATION_DICTIONARY=()
@@ -35,14 +34,13 @@ USAGE:
 EXAMPLES:
     ipsoak --source data.txt
     ipsoak -s "192.168.1.1/24,10.10.10.25,2404:6800:4008:c02::8b" -m ipv6
-    ipsoak --geo -s https://example.com/log.txt
+    ipsoak --geolocation -s https://example.com/log.txt
 
 OPTIONS:
     -s, --source                      Choose the source data to extract ips from
     -m  --mode <type>                 Choose the mode of extraction (ipv4,ipv6,both)
-    -u  --unique                      Remove duplicated matches      
     -h  --help                        Print help information
-        --geo                         Geolocate all the ip matches
+        --geolocation                 Geolocate all the ip matches
 EOF
 }
 
@@ -75,7 +73,8 @@ command_exists() {
   }
 
 extract_ipv4_from_source() {
-    local source=$1
+    local source
+    source=$(remove_duplicates "$1")
     local source_type=$2
 
     if [ "$source_type" = 'file' ]; then
@@ -94,7 +93,8 @@ extract_ipv4_from_source() {
 }
 
 extract_ipv6_from_source() {
-    local source=$1
+    local source
+    source=$(remove_duplicates "$1")
     local source_type=$2
 
     if [ "$source_type" = 'file' ]; then
@@ -269,9 +269,8 @@ fi
 for arg in "$@"; do
 shift
     case "$arg" in
-        '--geo')       set -- "$@" '-g'   ;;
+        '--geolocation')       set -- "$@" '-g'   ;;
         '--source')    set -- "$@" '-s'   ;;
-        '--unique')    set -- "$@" '-u'   ;;
         '--mode')      set -- "$@" '-g'   ;;
         '--help')      set -- "$@" '-h'   ;;
         *)             set -- "$@" "$arg" ;;
@@ -282,7 +281,6 @@ while getopts ":s:m:ugh:" arg; do
     case $arg in
         s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
-        u) REMOVE_DUPLICATES=1;;
         g) GEOLOCATION=1;;
         h | *)
             show_help
@@ -292,11 +290,6 @@ done
 shift $(( OPTIND - 1))
 
 extract_ip_addreses_based_on_mode
-
-if [ "$REMOVE_DUPLICATES" -eq 1 ]; then 
-    IP4_MATCHES=$(remove_duplicates "$IP4_MATCHES")
-    IP6_MATCHES=$(remove_duplicates "$IP6_MATCHES")
-fi
 
 if [ $GEOLOCATION -eq 1 ]; then
     calculate_geolocation
