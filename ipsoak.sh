@@ -9,10 +9,11 @@ IP6_REGEX='((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){6}(?:
 DATA_SOURCE=''
 DATA_SOURCE_TYPE='text'
 MODE='both'
-GEOLOCATION=0
-REMOVE_DUPLICATES=0
+declare -i GEOLOCATION=0
+declare -i REMOVE_DUPLICATES=0
 IP4_MATCHES=''
 IP6_MATCHES=''
+declare -A IP_GEOLOCATION_DICTIONARY=()
 GREP_COMMAND='grep' # GNU Linux grep command by default
 
 if [[ $OSTYPE == 'darwin'* ]]; then 
@@ -43,6 +44,12 @@ EOF
 data_source_is_empty() {
     echo -e "You need to provide a valid source of data (file, text or url). Example: ipsoak -s log.dat"
     exit 1
+}
+
+ is_empty() {
+    local var=$1
+
+    [[ -z $var ]]
 }
 
 to_lowercase() {
@@ -152,9 +159,9 @@ get_ipv6_from_text() {
 }
 
 geolocate_ip() { 
-       # The user agent only needs to have this format, it does not need to be a real domain or ip
     local ip_address=$1
-    local user_agent='keycdn-tools:http://10.10.10.25'
+    # The user agent only needs to have this format, it does not need to be a real domain or ip
+    local user_agent='keycdn-tools:http://1.1.1.1'
     local url="https://tools.keycdn.com/geo.json?host=$ip_address"
 
     if command_exists 'curl'; then 
@@ -190,7 +197,7 @@ set_mode() {
 set_data_source() {
     local source=$1
 
-    [[ -z $source ]] && data_source_is_empty
+    is_empty "$source" && data_source_is_empty
 
     if [ -f "$source" ]; then
         DATA_SOURCE_TYPE='file'
@@ -201,6 +208,40 @@ set_data_source() {
     fi
 
     DATA_SOURCE=$source
+}
+
+calculate_geolocation() {
+    if [ $GEOLOCATION -eq 1 ]; then
+        if ! is_empty "$IP4_MATCHES"; then
+            readarray -t ip_addreses <<< "$IP4_MATCHES"
+
+            for ip in "${ip_addreses[@]}"; do
+                if [[ ! -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
+                    IP_GEOLOCATION_DICTIONARY[$ip]=$(geolocate_ip "$ip")
+                fi
+            done 
+        fi
+
+        if ! is_empty "$IP6_MATCHES"; then 
+            readarray -t <<< "$IP6_MATCHES"
+
+            for ip in "${MAPFILE[@]}"; do 
+                if [[ ! -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
+                    IP_GEOLOCATION_DICTIONARY[$ip]=$(geolocate_ip "$ip")
+                fi
+            done 
+        fi
+    fi
+}
+
+remove_duplicates() {
+    if [ "$REMOVE_DUPLICATES" -eq 1 ]; then 
+        ! is_empty \
+            && IP4_MATCHES=$(echo "$IP4_MATCHES" | sort -u)
+
+        ! is_empty \
+            && IP6_MATCHES=$(echo "$IP6_MATCHES" | sort -u)
+    fi
 }
 
 ## Check if no arguments are provided to the script
@@ -250,14 +291,5 @@ case $MODE in
     ;; 
 esac
 
-if [ $GEOLOCATION -eq 1 ]; then 
-    echo 'geo'
-fi
-
-if [ "$REMOVE_DUPLICATES" -eq 1 ]; then 
-    [[ -z $IP4_MATCHES ]] \
-        && IP4_MATCHES=$(echo "$IP4_MATCHES" | sort -u)
-
-    [[ -z $IP6_MATCHES ]] \
-        && IP6_MATCHES=$(echo "$IP6_MATCHES" | sort -u)
-fi
+remove_duplicates
+calculate_geolocation
