@@ -72,6 +72,32 @@ command_exists() {
     [[ -n "$(command -v "$COMMAND")" ]]
   }
 
+extract_json_property() {
+    local json="$1"
+    local property="$2"
+
+    if command_exists "jq"; then 
+        echo "$json" | jq ".$property"
+    else 
+        # Use grep to match the property name and extract the value
+        local regex="\"${property}\":\s*([^,}]+)"
+        if [[ $json =~ $regex ]]; then
+            local value="${BASH_REMATCH[1]}"
+
+            # If the value is a string with quotes, remove them
+            if [[ $value =~ ^\"(.*)\"$ ]]; then
+                echo "${BASH_REMATCH[1]}"
+            else
+                echo "$value"
+            fi
+        else
+            # If the property is not found, return an empty string
+            echo ""
+        fi
+    
+    fi
+}
+
 extract_ipv4_from_source() {
     local source=$1
     local source_type=$2
@@ -161,6 +187,10 @@ get_ipv6_from_text() {
     IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | $GREP_COMMAND  -Pohw "$IP6_REGEX")
 }
 
+###
+#JSON STRUCTURE EXAMPLE
+# {"status":"success","description":"Data successfully received.","data":{"geo":{"host":"74.220.199.8","ip":"74.220.199.8","rdns":"parking.hostmonster.com","asn":46606,"isp":"UNIFIEDLAYER-AS-1","country_name":"United States","country_code":"US","region_name":null,"region_code":null,"city":null,"postal_code":null,"continent_name":"North America","continent_code":"NA","latitude":37.751,"longitude":-97.822,"metro_code":null,"timezone":"America\/Chicago","datetime":"2023-03-18 04:23:49"}}}
+###
 geolocate_ip() { 
     local ip_address=$1
     # The user agent only needs to have this format, it does not need to be a real domain or ip
@@ -241,6 +271,10 @@ remove_duplicates() {
 }
 
 extract_ip_addreses_based_on_mode() {
+    if is_empty "$DATA_SOURCE"; then
+        data_source_is_empty
+    fi
+
     case $MODE in 
     ipv4)
         extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
@@ -265,23 +299,45 @@ function classify_ips() {
 }
 
 build_information_table() {
-    table_header="IP-ADDRESS COUNT COUNTRY LATITUDE LONGITUDE"
+    table_header="IP-ADDRESS COUNT COUNTRY LATITUDE LONGITUDE\n"
 
     ! is_empty "$IP4_MATCHES" && { [ "$MODE" = 'ipv4' ] || [ "$MODE" = 'both' ]; } \
-        && table_body+="$(classify_ips "$IP4_MATCHES")\n"
+        && table_body+="$(classify_ips "$IP4_MATCHES")"
 
     ! is_empty "$IP6_MATCHES" && { [ "$MODE" = 'ipv6' ] || [ "$MODE" = 'both' ]; } \
-        && table_body+="$(classify_ips "$IP6_MATCHES")\n"
+        && table_body+="$(classify_ips "$IP6_MATCHES")"
 
     if [ $GEOLOCATION -eq 1 ]; then
-        readarray -t geo <<< "$table_body"
+        readarray -t table_rows <<< "$table_body"
         table_geo=''
         
-        for line in "${geo[@]}"; do
-             ip=$(echo -e "$line" | awk '{print $1}')
+        for row in "${table_rows[@]}"; do
+            row=$(echo -n "$row" | sed 's/\n$//')
 
-            if ! is_empty "$ip" && [[ -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
-                table_geo+="$(echo -n "$line") ESP 919012 9102901\n"
+            ip=$(echo "$row" | awk '{print $1}')
+
+            if ! is_empty "$ip" && [[ -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then
+                geo_data=${IP_GEOLOCATION_DICTIONARY["$ip"]}
+                
+                country_property="data.geo.country_name"
+                latitude_property="data.geo.latitude"
+                longitude_property="data.geo.longitude"
+
+                if command_exists "jq"; then 
+                    country_property=".$country_property"
+                    latitude_property=".$latitude_property"
+                    longitude_property=".$longitude_property"    
+
+                    country=$(echo "$geo_data" | jq "$country_property" | sed 's/[[:space:]]\{1,\}/_/g' | sed 's/\"//g')
+                    latitude=$(echo "$geo_data" | jq "$latitude_property")
+                    longitude=$(echo "$geo_data" | jq "$longitude_property")           
+                else 
+                    country=$(extract_json_property "$geo_data" "$country_property" | sed 's/[[:space:]]\{1,\}/_/g' | sed 's/\"//g')
+                    latitude=$(extract_json_property "$geo_data" "$latitude_property")
+                    longitude=$(extract_json_property "$geo_data" "$longitude_property")
+                fi
+                
+                table_geo+="$row $country $latitude $longitude\n"
             fi
         done 
 
@@ -289,8 +345,12 @@ build_information_table() {
     else 
         echo -e "$table_header $table_body" | column -t
     fi
-
 }
+
+## Check if no arguments are provided to the script
+if [ "$#" -eq 0 ]; then
+    data_source_is_empty
+fi
 
 for arg in "$@"; do
 shift
@@ -314,11 +374,6 @@ while getopts ":s:m:gh:" arg; do
     esac
 done
 shift $(( OPTIND - 1))
-
-## Check if no arguments are provided to the script
-if [ "$#" -eq 0 ] || is_empty "$DATA_SOURCE"; then
-    data_source_is_empty
-fi
 
 extract_ip_addreses_based_on_mode
 

@@ -24,3 +24,8 @@ Any address that begins with one of the following, is private, and invalid in th
 - Validar que puede recibir un archivo
 - Validar que puede recibir una url y realizar peticion GET
 - Comprobar que si se ejecuta sin argumentos se muestra un mensaje de error con la ayuda
+
+# BUGS
+
+Si se le pasa una fuente de datos ipv4 y usa el modo por defecto 'both' no se ejecuta el codigo despues de llamar a la funcion en el case 'both'
+. WHAT THE HELL
