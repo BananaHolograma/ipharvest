@@ -10,20 +10,20 @@ DATA_SOURCE=''
 DATA_SOURCE_TYPE='text'
 MODE='both'
 declare -i GEOLOCATION=0
+declare -A IP_GEOLOCATION_DICTIONARY=()
+OUTPUT_FILE=''
 IP4_MATCHES=''
 IP6_MATCHES=''
-declare -A IP_GEOLOCATION_DICTIONARY=()
 GREP_COMMAND='grep' # GNU Linux grep command by default
 
 if [[ $OSTYPE == 'darwin'* ]]; then 
-    # In MacOS systems we need to use the ggrep command to have the same behaviour as GNU/Linux grep
     GREP_COMMAND='ggrep'
-
-    if [[ -z "$GREP_COMMAND" ]]; then
-        echo -e "ERROR: GNU grep is required. Install it with 'brew install grep'." >&2
+    if ! command -v "$GREP_COMMAND" >/dev/null 2>&1; then
+        echo -e "GNU grep is required. Install it with 'brew install grep'." >&2
         exit 1
     fi
 fi
+
 ### ###
 
 show_help() {
@@ -347,6 +347,20 @@ build_information_table() {
     fi
 }
 
+save_result_to_file() {
+    local result=$1
+    local filepath=$2
+
+    if ! is_empty "$filepath"; then
+        if echo "$result" > "$filepath"; then
+            printf "Final IP report writed to %s" "$filepath"
+        else
+            printf "Failed to write IP report to %s" "$filepath"  >&2
+            exit 1
+        fi
+    fi
+}
+
 ## Check if no arguments are provided to the script
 if [ "$#" -eq 0 ]; then
     data_source_is_empty
@@ -355,6 +369,7 @@ fi
 for arg in "$@"; do
 shift
     case "$arg" in
+        '--output')            set -- "$@" '-o'   ;;
         '--geolocation')       set -- "$@" '-g'   ;;
         '--source')            set -- "$@" '-s'   ;;
         '--mode')              set -- "$@" '-m'   ;;
@@ -363,10 +378,11 @@ shift
     esac
 done
 
-while getopts ":s:m:gh:" arg; do
+while getopts ":s:m:o:gh:" arg; do
     case $arg in
         s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
+        o) OUTPUT_FILE="$OPTARG";;
         g) GEOLOCATION=1;;
         h | *)
             show_help
@@ -381,4 +397,6 @@ if [ $GEOLOCATION -eq 1 ]; then
     calculate_geolocation
 fi
 
-build_information_table
+result=$(build_information_table)
+
+save_result_to_file "$result" "$OUTPUT_FILE"
