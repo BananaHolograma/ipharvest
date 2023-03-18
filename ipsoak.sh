@@ -161,14 +161,14 @@ get_ipv6_from_text() {
 geolocate_ip() { 
     local ip_address=$1
     # The user agent only needs to have this format, it does not need to be a real domain or ip
-    local user_agent='keycdn-tools:http://1.1.1.1'
+    local user_agent='keycdn-tools:http://10.10.10.25'
     local url="https://tools.keycdn.com/geo.json?host=$ip_address"
 
     if command_exists 'curl'; then 
         curl -s -H "User-Agent: $user_agent" "$url"
 
     elif command_exists 'wget'; then 
-        wget -U "User-Agent: $user_agent" "$url"
+        wget -qO- --user-agent="$user_agent" "$url"
     else 
         echo -e "We couldn't geolocate the IP $ip_address because commands wget and curl are not available in your system"
     fi    
