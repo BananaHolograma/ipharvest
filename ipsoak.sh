@@ -292,23 +292,18 @@ build_information_table() {
 
 }
 
-## Check if no arguments are provided to the script
-if [ "$#" -eq 0 ]; then
-    data_source_is_empty
-fi
-
 for arg in "$@"; do
 shift
     case "$arg" in
         '--geolocation')       set -- "$@" '-g'   ;;
-        '--source')    set -- "$@" '-s'   ;;
-        '--mode')      set -- "$@" '-g'   ;;
-        '--help')      set -- "$@" '-h'   ;;
-        *)             set -- "$@" "$arg" ;;
+        '--source')            set -- "$@" '-s'   ;;
+        '--mode')              set -- "$@" '-m'   ;;
+        '--help')              set -- "$@" '-h'   ;;
+        *)                     set -- "$@" "$arg" ;;
     esac
 done
 
-while getopts ":s:m:ugh:" arg; do
+while getopts ":s:m:gh:" arg; do
     case $arg in
         s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
@@ -319,6 +314,11 @@ while getopts ":s:m:ugh:" arg; do
     esac
 done
 shift $(( OPTIND - 1))
+
+## Check if no arguments are provided to the script
+if [ "$#" -eq 0 ] || is_empty "$DATA_SOURCE"; then
+    data_source_is_empty
+fi
 
 extract_ip_addreses_based_on_mode
 
