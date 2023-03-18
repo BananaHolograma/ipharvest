@@ -49,7 +49,7 @@ data_source_is_empty() {
     exit 1
 }
 
- is_empty() {
+is_empty() {
     local var=$1
 
     [[ -z $var ]]
@@ -73,8 +73,7 @@ command_exists() {
   }
 
 extract_ipv4_from_source() {
-    local source
-    source=$(remove_duplicates "$1")
+    local source=$1
     local source_type=$2
 
     if [ "$source_type" = 'file' ]; then
@@ -93,8 +92,7 @@ extract_ipv4_from_source() {
 }
 
 extract_ipv6_from_source() {
-    local source
-    source=$(remove_duplicates "$1")
+    local source=$1
     local source_type=$2
 
     if [ "$source_type" = 'file' ]; then
@@ -261,6 +259,39 @@ extract_ip_addreses_based_on_mode() {
     esac
 }
 
+function classify_ips() {
+    local ips=$1
+    echo "$ips" | tr ' ' '\n' | sort | uniq -c | sort -nr | awk '{print $2"\t"$1}'
+}
+
+build_information_table() {
+    table_header="IP-ADDRESS COUNT COUNTRY LATITUDE LONGITUDE"
+
+    ! is_empty "$IP4_MATCHES" && { [ "$MODE" = 'ipv4' ] || [ "$MODE" = 'both' ]; } \
+        && table_body+="$(classify_ips "$IP4_MATCHES")\n"
+
+    ! is_empty "$IP6_MATCHES" && { [ "$MODE" = 'ipv6' ] || [ "$MODE" = 'both' ]; } \
+        && table_body+="$(classify_ips "$IP6_MATCHES")\n"
+
+    if [ $GEOLOCATION -eq 1 ]; then
+        readarray -t geo <<< "$table_body"
+        table_geo=''
+        
+        for line in "${geo[@]}"; do
+             ip=$(echo -e "$line" | awk '{print $1}')
+
+            if ! is_empty "$ip" && [[ -v IP_GEOLOCATION_DICTIONARY["$ip"] ]]; then 
+                table_geo+="$(echo -n "$line") ESP 919012 9102901\n"
+            fi
+        done 
+
+        echo -e "$table_header $table_geo" | column -t
+    else 
+        echo -e "$table_header $table_body" | column -t
+    fi
+
+}
+
 ## Check if no arguments are provided to the script
 if [ "$#" -eq 0 ]; then
     data_source_is_empty
@@ -294,3 +325,5 @@ extract_ip_addreses_based_on_mode
 if [ $GEOLOCATION -eq 1 ]; then
     calculate_geolocation
 fi
+
+build_information_table
