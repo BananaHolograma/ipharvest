@@ -1,10 +1,7 @@
-# ipharvest
-
 ![computer_basement_logo](assets/computer_basement.jpg)
 
 `Ipharvest` is a command-line tool for extracting IP addresses from various data sources and generate reports in multiple formats such as csv and json.
 
-- [ipharvest](#ipharvest)
 - [License](#license)
 - [Usage](#usage)
   - [Output result into a file](#output-result-into-a-file)
@@ -48,7 +45,7 @@ Default arguments:
 
 ## Output result into a file
 
-To choose the format of the outupt just set the format in the path like `documents/report.json` or `report.csv`. The tool automatically detects the format to output the result. If no format is provided it will be saved as raw text.
+To choose the format of the outupt just set the format in the path like `documents/report.json` or `report.csv`. The tool automatically detects the format to make the proper transformations. If no format is provided it will be saved as raw text.
 
 ## Examples
 
