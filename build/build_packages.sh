@@ -44,7 +44,7 @@ config_file="fpm-config.json"
 
 # Especificar el nombre y la versión del paquete
 package_name="ipharvest"
-package_version="1.0.0"
+package_version="1.0.1"
 build_directory='.'
 
 # Create build directory if not exists
