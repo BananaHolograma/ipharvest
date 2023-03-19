@@ -29,3 +29,31 @@ Any address that begins with one of the following, is private, and invalid in th
 
 Si se le pasa una fuente de datos ipv4 y usa el modo por defecto 'both' no se ejecuta el codigo despues de llamar a la funcion en el case 'both'
 . WHAT THE HELL
+
+# IMPROVEMENTS
+
+    Añadir una comprobación de versión de bash. Si se usa una versión anterior a la requerida, se debe mostrar un mensaje de error.
+
+    Incluir un control de errores más detallado y personalizado. En caso de que ocurra un error, se debe mostrar un mensaje de error explicando lo que sucedió y cómo solucionarlo.
+
+    Añadir una opción para imprimir la versión del script.
+
+    Incluir una opción para mostrar la licencia.
+
+    Especificar las dependencias necesarias en el archivo README.
+
+    Cambiar el nombre del comando para que sea más descriptivo y fácil de entender.
+
+    Añadir más opciones de salida, como formato de archivo CSV y JSON.
+
+    Utilizar un archivo de configuración para almacenar opciones comunes que se pueden reutilizar en diferentes ejecuciones del script.
+
+    Utilizar la opción "-h" para mostrar la ayuda y "-v" para mostrar la versión del script.
+
+    Agregar un mensaje de bienvenida y despedida para una mejor experiencia de usuario.
+
+    Incluir una opción para habilitar o deshabilitar el color en la salida.
+
+    Añadir una opción para especificar el nivel de verbosidad de la salida.
+
+    Agregar más opciones de filtrado, como puerto, país, región, ciudad, proveedor de servicios de Internet, etc.
