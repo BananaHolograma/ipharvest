@@ -4,7 +4,29 @@
 
 `Ipharvest` is a command-line tool for extracting IP addresses from various data sources and generate reports in multiple formats such as csv and json.
 
-## Usage
+- [ipharvest](#ipharvest)
+- [License](#license)
+- [Usage](#usage)
+  - [Output result into a file](#output-result-into-a-file)
+  - [Examples](#examples)
+    - [Extract IP addresses from a local text file:](#extract-ip-addresses-from-a-local-text-file)
+    - [Extract IP addreses by selecting the mode](#extract-ip-addreses-by-selecting-the-mode)
+    - [Extract IPv6 addresses from a raw text:](#extract-ipv6-addresses-from-a-raw-text)
+    - [Extract IP addresses from a remote URL and geolocate them:](#extract-ip-addresses-from-a-remote-url-and-geolocate-them)
+    - [Extract IPv6 addresses from a local file and save the report as a JSON file:](#extract-ipv6-addresses-from-a-local-file-and-save-the-report-as-a-json-file)
+    - [Extract IP addresses from a local log file, geolocate them, and save the report as a CSV file:](#extract-ip-addresses-from-a-local-log-file-geolocate-them-and-save-the-report-as-a-csv-file)
+- [Report examples](#report-examples)
+  - [RAW](#raw)
+  - [JSON without geolocation](#json-without-geolocation)
+  - [JSON with geolocation](#json-with-geolocation)
+  - [CSV without geolocation](#csv-without-geolocation)
+  - [CSV with geolocation](#csv-with-geolocation)
+
+# License
+
+This tool is licensed under the [GNU General Public License v3.0](LICENSE.md)
+
+# Usage
 
 ipharvest [OPTIONS] [--]
 
@@ -73,10 +95,6 @@ ipharvest -s ipv6.txt --mode ipv6 -o documents/reports/ipv6.json
 
 ipharvest -source /var/log/example.log --geolocation --mode both -o reports/ip_harvest.csv
 ```
-
-# License
-
-This tool is licensed under the [GNU General Public License v3.0](LICENSE.md)
 
 # Report examples
 
