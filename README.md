@@ -49,11 +49,11 @@ wget https://github.com/0xp1n/ipharvest/blob/main/bin/<architecture>/ipharvest
 
 # ARM64 (MacOS with Apple silicon)
 curl -X GET https://github.com/0xp1n/ipharvest/blob/main/bin/arm64/ipharvest
-wget https://github.com/0xp1n/ipharvest/blob/main/bin/<architecture>/ipharvest
+wget https://github.com/0xp1n/ipharvest/blob/main/bin/arm64/ipharvest
 
 # x64-64 (GNU/Linux)
 curl -X GET https://github.com/0xp1n/ipharvest/blob/main/bin/x86-64/ipharvest
-wget https://github.com/0xp1n/ipharvest/blob/main/bin/<architecture>/ipharvest
+wget https://github.com/0xp1n/ipharvest/blob/main/bin/x86-64/ipharvest
 
 ## Move the binary to some directory defined on global variable $PATH to have it globally available in terminal
 mv ipharvest /usr/bin
