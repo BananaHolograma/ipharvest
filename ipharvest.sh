@@ -6,6 +6,7 @@ greenColour='\033[0;32m'
 redColour='\033[0;31m'
 blueColour='\033[0;34m'
 yellowColour='\033[1;33m'
+grayColour='\033[0;37m'
 endColour='\033[0m'
 
 ### GLOBALS ###
@@ -132,7 +133,7 @@ extract_json_property() {
 
 show_ip_report_message() {
     local filepath=$1 
-    echo -e "[ SUCCESS ]$greenColour IP report writed to$endColour$yellowColour $filepath$endColour"
+    echo -e "$greenColour [ REPORT ]$endColour IP report writed to$yellowColour $filepath$endColour"
 }
 
 extract_ipv4_from_source() {
@@ -312,6 +313,7 @@ extract_ip_addreses_based_on_mode() {
         data_source_is_empty
     fi
 
+    echo -e "$greenColour [ HARVEST ]$endColour$grayColour Extracting IPs from data source provided$endColour\n"
     case $MODE in 
     ipv4)
         extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
@@ -398,13 +400,20 @@ save_result_to_file() {
     if ! is_empty "$filepath"; then
         if [[ "$filepath" =~ (.json)$ ]]; then
             if command_exists 'jq'; then 
-                echo "$result" | tail -n+2 | sed 's/  */ /g' | jq -Rsr 'split("\n") | map(select(length > 0)) | map(split(" ")) | map({("IP-ADDRESS"): .[0], ("COUNT"): .[1], ("COUNTRY"): .[2:-4] | join(" "), ("LATITUDE"): .[-4], ("LONGITUDE"): .[-3], ("TIMEZONE"): .[-2], ("ISP"): .[1-2:] | join(" ")})' > "$filepath"
+                echo "$result" | tail -n+2 | sed 's/  */ /g' | jq -Rsr 'split("\n") | map(select(length > 0)) | map(split(" ")) | map({("IP-ADDRESS"): .[0], ("COUNT"): .[1], ("COUNTRY"): .[2:-4] | join(" "), ("LATITUDE"): .[-4], ("LONGITUDE"): .[-3], ("TIMEZONE"): .[-2], ("ISP"): .[1-2:] | join(" ")})' 1> "$filepath"
+                
+                # Only get ip address and count properties when geolocation is not calculated
+                if [ $GEOLOCATION -eq 0 ]; then
+                    # This behavior with tmp_file is because jq -i flag is not available always
+                    jq 'map(del(.COUNTRY, .LATITUDE, .LONGITUDE, .TIMEZONE, .ISP))' "$filepath" > tmp_file && mv tmp_file "$filepath"
+                fi 
+
                 show_ip_report_message "$filepath"
             else 
                 echo -e "[ FAILED ]$redColour The save the file in format .json the tool$endColour$yellowColour jq$endColour$redColour needs to be installed$endColour"
             fi 
         elif [[ "$filepath" =~ (.csv)$ ]]; then
-            echo "$result" | awk -F '\t' 'BEGIN{OFS=","} {print $1,$2,$3,$4,$5,$6,$7}' > "$filepath"
+            echo "$result" | awk -F ' ' 'BEGIN{OFS=","} {print $1,$2,$3,$4,$5,$6,$7}' 1> "$filepath"
             show_ip_report_message "$filepath"
         else
             if echo "$result" > "$filepath"; then
@@ -453,6 +462,7 @@ banner
 extract_ip_addreses_based_on_mode
 
 if [ $GEOLOCATION -eq 1 ]; then
+    echo -e "$greenColour [ GEOLOCATION ]$endColour$grayColour Fetching geolocation data for each IP found in the source...$endColour"
     calculate_geolocation
 fi
 
@@ -461,6 +471,5 @@ result=$(build_information_table)
 save_result_to_file "$result" "$OUTPUT_FILE"
 
 # Only shows the total result if no output file was provided
-if  is_empty "$OUTPUT_FILE"; then 
-    echo -e "$result"
-fi
+is_empty "$OUTPUT_FILE" \
+    && echo -e "$result"
