@@ -186,7 +186,7 @@ get_ipv4_from_text() {
 get_ipv4_from_url() {
     local url=$1
 
-     if command_exists 'curl'; then 
+    if command_exists 'curl'; then 
         curl -ksLo downloaded_file "$url" \
             && get_ipv4_from_file downloaded_file
 
@@ -197,12 +197,14 @@ get_ipv4_from_url() {
     else 
         echo -e "$redColour [ FAILED ]We couldn't fetch the source from$endColour$blueColour$url $endColour because commands$yellowColour wget$endColour and$yellowColour curl$endColour$redColour are not available in your system$endColour"
     fi
+
+    rm downloaded_file 2>/dev/null
 }
 
 get_ipv6_from_url() {
     local url=$1
 
-     if command_exists 'curl'; then 
+    if command_exists 'curl'; then 
         curl -ksLo downloaded_file "$url" \
             && get_ipv6_from_file downloaded_file
 
@@ -213,6 +215,8 @@ get_ipv6_from_url() {
     else 
         echo -e "$redColour [ FAILED ]We couldn't fetch the source from$endColour$blueColour$url $endColour because commands$yellowColour wget$endColour and$yellowColour curl$endColour$redColour are not available in your system$endColour"
     fi
+
+    rm downloaded_file 2>/dev/null
 }
 
 get_ipv6_from_file() {
