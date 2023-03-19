@@ -74,7 +74,9 @@ ipharvest -s ipv6.txt --mode ipv6 -o documents/reports/ipv6.json
 ipharvest -source /var/log/example.log --geolocation --mode both -o reports/ip_harvest.csv
 ```
 
-License
+# License
+
+This tool is licensed under the [GNU General Public License v3.0](LICENSE.md)
 
 # Report examples
 
