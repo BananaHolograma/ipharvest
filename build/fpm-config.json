@@ -1,0 +1,12 @@
+{
+  "name": "ipharvest",
+  "version": "1.0.0",
+  "maintainer": "s3r0s4pi3ns",
+  "description": "ipharvest is a command-line tool for extracting IP addresses from various data sources and generate reports in multiple formats such as csv and json",
+  "license": "GPLv3",
+  "url": "https://github.com/0xp1n/ipharvest",
+  "category": "utils,data,analysis",
+  "dependencies": ["bash"],
+  "package_type": "deb",
+  "output_dir": "pkg"
+}
