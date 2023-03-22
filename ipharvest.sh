@@ -99,6 +99,12 @@ is_url() {
     [[ $url =~ $regex ]]
 }
 
+file_exists() {
+    local file=$1
+
+    [[ -f $file ]]
+}
+
 command_exists() {
     local COMMAND=$1
 
@@ -274,7 +280,7 @@ set_data_source() {
 
     is_empty "$source" && data_source_is_empty
 
-    if [ -f "$source" ]; then
+    if file_exists "$source" ; then
         DATA_SOURCE_TYPE='file'
     fi 
     
@@ -313,7 +319,7 @@ remove_duplicates() {
 }
 
 extract_ip_addreses_based_on_mode() {
-    if is_empty "$DATA_SOURCE"; then
+    if is_empty "$DATA_SOURCE" || ! file_exists "$DATA_SOURCE" ; then
         data_source_is_empty
     fi
 
