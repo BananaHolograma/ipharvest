@@ -437,7 +437,7 @@ shift
     esac
 done
 
-while getopts ":s?:m:o:gvh:" arg; do
+while getopts ":s:m:o:gvh:" arg; do
     case $arg in
         s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
@@ -455,7 +455,7 @@ shift $(( OPTIND - 1))
 banner
 
 # Read from stdin if no arguments provided or flag -s is not present
-if [ $# -eq 0 ] || [ "$DATA_SOURCE_TYPE" = 'stdin' ]; then
+if [[ -z "$DATA_SOURCE" && "$DATA_SOURCE_TYPE" = 'stdin' && $# -eq 0 ]]; then
     read -t 0.5 DATA_SOURCE
 fi
 
