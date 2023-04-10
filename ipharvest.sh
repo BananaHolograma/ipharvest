@@ -1,6 +1,6 @@
-#!/opt/homebrew/bin/bash
+#!/usr/bin/env bash
 
-set -euo pipefail
+set -uo pipefail
 
 greenColour='\033[0;32m'
 redColour='\033[0;31m'
@@ -11,28 +11,17 @@ endColour='\033[0m'
 
 ### GLOBALS ###
 readonly VERSION='1.0.1'
-readonly IP4_REGEX='(?!0|22[4-9]|23[0-9])((\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])'
+readonly IP4_REGEX='(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
 readonly IP6_REGEX='((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5}|(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6}|(?:[0-9a-fA-F]{1,4}:){1}(?::[0-9a-fA-F]{1,4}){1,7}|(?::(?::[0-9a-fA-F]{1,4}){1,7}){1})(?:::[0-9a-fA-F]{1,4}[0-9a-fA-F]{1,4})?'
 
 DATA_SOURCE=''
-DATA_SOURCE_TYPE='text'
+DATA_SOURCE_TYPE='stdin'
 MODE='both'
 declare -i GEOLOCATION=0
 declare -A IP_GEOLOCATION_DICTIONARY=()
 OUTPUT_FILE=''
 IP4_MATCHES=''
 IP6_MATCHES=''
-GREP_COMMAND='grep' # GNU Linux grep command by default
-
-if [[ $OSTYPE == 'darwin'* ]]; then 
-    GREP_COMMAND='ggrep'
-    if ! command -v "$GREP_COMMAND" >/dev/null 2>&1; then
-        echo -e "$redColour GNU grep$endColour is required. Install it with$yellowColour 'brew install grep'$endColour." >&2
-        exit 1
-    fi
-fi
-
-### ###
 
 banner() {
     cat << EOF
@@ -48,7 +37,7 @@ EOF
 show_version() {
 cat << 'EOF'
 ipsoak v1.0.0 (v1.0.0)
-Source available at https://github.com/0xp1n/ipsoak
+Source available at https://github.com/s3r0s4pi3ns/ipharvest
 EOF
 
 exit 0
@@ -139,7 +128,7 @@ extract_json_property() {
 
 show_ip_report_message() {
     local filepath=$1 
-    echo -e "$greenColour [ REPORT ]$endColour IP report writed to$yellowColour $filepath$endColour"
+    echo -e "${greenColour}[ REPORT ]$endColour IP report writed to$yellowColour $filepath$endColour"
 }
 
 extract_ipv4_from_source() {
@@ -149,14 +138,13 @@ extract_ipv4_from_source() {
     if [ "$source_type" = 'file' ]; then
         get_ipv4_from_file "$source"
 
-    elif [ "$source_type" = 'text' ]; then
+    elif [[ "$source_type" == 'text' || "$source_type" == 'stdin' ]]  ; then
         get_ipv4_from_text "$source"
 
     elif [ "$source_type" = 'url' ]; then
-        get_ipv4_from_url "$source"
-       
+        get_ipv4_from_url "$source"      
     else  
-        echo -e "$redColour [ FAILED ] The data source type is invalid, the tool only allows$endColour $yellowColour file|text|url$endColour,$redColour aborting operation...$endColour"
+        echo -e "${redColour}[ FAILED ] The data source type is invalid, the tool only allows$endColour $yellowColour file|text|url$endColour,$redColour aborting operation...$endColour"
         exit 1
     fi
 }
@@ -168,25 +156,25 @@ extract_ipv6_from_source() {
     if [ "$source_type" = 'file' ]; then
         get_ipv6_from_file "$source"
 
-    elif [ "$source_type" = 'text' ]; then
+    elif [[ "$source_type" == 'text' || "$source_type" == 'stdin' ]]; then
         get_ipv6_from_text "$source"
 
     elif [ "$source_type" = 'url' ]; then
         get_ipv6_from_url "$source"
     else  
-        echo -e "$redColour [ FAILED ] The data source type is invalid, the tool only allows$endColour $yellowColour file|text|url$endColour,$redColour aborting operation...$endColour"
+        echo -e "${redColour}[ FAILED ] The data source type is invalid, the tool only allows$endColour $yellowColour file|text|url$endColour,$redColour aborting operation...$endColour"
         exit 1
     fi
 }
 
 get_ipv4_from_file() {
     local file=$1
-    IP4_MATCHES=$($GREP_COMMAND  -Pohw "$IP4_REGEX" "$file")
+    IP4_MATCHES=$(grep -Eo "$IP4_REGEX" "$file")
 }
 
 get_ipv4_from_text() {
     local text=$1
-    IP4_MATCHES=$(echo "$text" | $GREP_COMMAND -Pohw "$IP4_REGEX")
+    IP4_MATCHES=$(echo "$text" | grep -Eo "$IP4_REGEX")
 }
 
 get_ipv4_from_url() {
@@ -201,7 +189,7 @@ get_ipv4_from_url() {
             && get_ipv4_from_file downloaded_file
 
     else 
-        echo -e "$redColour [ FAILED ]We couldn't fetch the source from$endColour$blueColour$url $endColour because commands$yellowColour wget$endColour and$yellowColour curl$endColour$redColour are not available in your system$endColour"
+        echo -e "${redColour}[ FAILED ]We couldn't fetch the source from$endColour$blueColour$url $endColour because commands$yellowColour wget$endColour and$yellowColour curl$endColour$redColour are not available in your system$endColour"
     fi
 
     rm downloaded_file 2>/dev/null
@@ -219,7 +207,7 @@ get_ipv6_from_url() {
             && get_ipv6_from_file downloaded_file
 
     else 
-        echo -e "$redColour [ FAILED ]We couldn't fetch the source from$endColour$blueColour$url $endColour because commands$yellowColour wget$endColour and$yellowColour curl$endColour$redColour are not available in your system$endColour"
+        echo -e "${redColour}[ FAILED ]We couldn't fetch the source from$endColour$blueColour$url $endColour because commands$yellowColour wget$endColour and$yellowColour curl$endColour$redColour are not available in your system$endColour"
     fi
 
     rm downloaded_file 2>/dev/null
@@ -227,12 +215,12 @@ get_ipv6_from_url() {
 
 get_ipv6_from_file() {
     local file=$1
-    IP6_MATCHES=$($GREP_COMMAND  -Pohw "$IP6_REGEX" "$file")
+    IP6_MATCHES=$(grep -Eo "$IP6_REGEX" "$file")
 }
 
 get_ipv6_from_text() {
     local file=$1
-    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | $GREP_COMMAND  -Pohw "$IP6_REGEX")
+    IP6_MATCHES=$(echo "$DATA_SOURCE_TYPE" | grep -Eo "$IP6_REGEX")
 }
 
 ###
@@ -251,7 +239,7 @@ geolocate_ip() {
     elif command_exists 'wget'; then 
         wget -qO- --user-agent="$user_agent" "$url"
     else 
-        echo -e "We couldn't geolocate the IP $ip_address because commands wget and curl are not available in your system"
+        echo -e "${redColour}[ FAILED ]We couldn't geolocate the IP $ip_address because commands wget and curl are not available in your system"
     fi    
 }
 
@@ -271,21 +259,20 @@ set_mode() {
     done
 
     if [ $valid_mode -eq 0 ]; then
-        echo -e "The selected mode $selected_mode is invalid, allowed values are: ${available_modes[*]}. The default mode $MODE will be used instead"
+        echo -e "${greenColour}[ HARVEST ]$endColour${redColour} The selected mode $selected_mode is invalid, allowed values are: ${available_modes[*]}. The default mode $MODE will be used instead"
     fi
 }
 
 set_data_source() {
     local source=$1
-
     is_empty "$source" && data_source_is_empty
 
     if file_exists "$source" ; then
         DATA_SOURCE_TYPE='file'
-    fi 
-    
-    if is_url "$source"; then 
+    elif is_url "$source"; then 
         DATA_SOURCE_TYPE='url'
+    else 
+        DATA_SOURCE_TYPE='text'
     fi
 
     DATA_SOURCE=$source
@@ -319,11 +306,11 @@ remove_duplicates() {
 }
 
 extract_ip_addreses_based_on_mode() {
-    if is_empty "$DATA_SOURCE" || ! file_exists "$DATA_SOURCE" ; then
+    if is_empty "$DATA_SOURCE" || ( [ $DATA_SOURCE_TYPE = 'file' ] && ! file_exists "$DATA_SOURCE" ); then
         data_source_is_empty
     fi
 
-    echo -e "$greenColour [ HARVEST ]$endColour$grayColour Extracting IPs from data source provided$endColour\n"
+    echo -e "${greenColour}[ HARVEST ]$endColour$grayColour Extracting IPs from data source provided...$endColour\n"
     case $MODE in 
     ipv4)
         extract_ipv4_from_source "$DATA_SOURCE" "$DATA_SOURCE_TYPE"
@@ -349,6 +336,7 @@ function classify_ips() {
 
 build_information_table() {
     table_header="IP-ADDRESS COUNT COUNTRY LATITUDE LONGITUDE TIMEZONE ISP\n"
+    table_body=''
 
     ! is_empty "$IP4_MATCHES" && { [ "$MODE" = 'ipv4' ] || [ "$MODE" = 'both' ]; } \
         && table_body+="$(classify_ips "$IP4_MATCHES")"
@@ -436,11 +424,6 @@ save_result_to_file() {
     fi
 }
 
-## Check if no arguments are provided to the script
-if [ "$#" -eq 0 ]; then
-    data_source_is_empty
-fi
-
 for arg in "$@"; do
 shift
     case "$arg" in
@@ -454,7 +437,7 @@ shift
     esac
 done
 
-while getopts ":s:m:o:gvh:" arg; do
+while getopts ":s?:m:o:gvh:" arg; do
     case $arg in
         s) set_data_source "$OPTARG";;
         m) set_mode "$OPTARG";;
@@ -463,23 +446,33 @@ while getopts ":s:m:o:gvh:" arg; do
         v) show_version;;
         h | *)
             show_help
+            exit 0
         ;;
     esac
 done
 shift $(( OPTIND - 1))
 
 banner
-extract_ip_addreses_based_on_mode
 
-if [ $GEOLOCATION -eq 1 ]; then
-    echo -e "$greenColour [ GEOLOCATION ]$endColour$grayColour Fetching geolocation data for each IP found in the source...$endColour"
-    calculate_geolocation
+# Read from stdin if no arguments provided or flag -s is not present
+if [ $# -eq 0 ] || [ "$DATA_SOURCE_TYPE" = 'stdin' ]; then
+    read -t 0.5 DATA_SOURCE
 fi
 
-result=$(build_information_table)
+extract_ip_addreses_based_on_mode
 
-save_result_to_file "$result" "$OUTPUT_FILE"
+if [[ -z "$IP4_MATCHES"  &&  -z "$IP6_MATCHES" ]]; then 
+    echo -e "${greenColour}[ HARVEST ]$endColour ${redColour}No valid IPs found from the data source provided$endColour"
+else 
+    if [ $GEOLOCATION -eq 1 ]; then
+        echo -e "${greenColour}[ GEOLOCATION ]$endColour$grayColour Fetching geolocation data for each IP found in the source...$endColour"
+        calculate_geolocation
+    fi
 
-# Only shows the total result if no output file was provided
-is_empty "$OUTPUT_FILE" \
-    && echo -e "$result"
+    result=$(build_information_table)
+    save_result_to_file "$result" "$OUTPUT_FILE"
+
+    # Only shows the total result if no output file was provided
+    is_empty "$OUTPUT_FILE" \
+        && echo -e "$result"
+fi
