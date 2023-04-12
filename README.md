@@ -10,6 +10,7 @@
 - [Usage](#usage)
   - [Output result into a file](#output-result-into-a-file)
   - [Examples](#examples)
+    - [Extract IP addreses from a pipe](#extract-ip-addreses-from-a-pipe)
     - [Extract IP addresses from a local text file:](#extract-ip-addresses-from-a-local-text-file)
     - [Extract IP addreses by selecting the mode](#extract-ip-addreses-by-selecting-the-mode)
     - [Extract IPv6 addresses from a raw text:](#extract-ipv6-addresses-from-a-raw-text)
@@ -108,11 +109,17 @@ To choose the format of the outupt just set the format in the path like `documen
 
 ## Examples
 
+### Extract IP addreses from a pipe
+
+```bash
+cat ips.txt | ipharvest --mode ipv6 --geolocation
+```
+
 ### Extract IP addresses from a local text file:
 
 ```bash
 ipharvest --source data.txt
-ipharvest -s data.txt
+ipharvest -s log.dat
 ```
 
 ### Extract IP addreses by selecting the mode
