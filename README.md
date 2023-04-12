@@ -4,8 +4,6 @@
 
 - [Installation](#installation)
   - [Requirements](#requirements)
-  - [Compile the binary for your system](#compile-the-binary-for-your-system)
-    - [**Important:**](#important)
 - [License](#license)
 - [Usage](#usage)
   - [Output result into a file](#output-result-into-a-file)
@@ -40,44 +38,6 @@ sudo apt install jq
 ```
 
 ---
-
-You just need the binaries to start using the tool, replace `<architecture>` on the url to your desired architecture. If you want to have global access in your shell move the binary into your selected binary path from `$PATH variable`, usually `/usr/bin or /usr/local/bin`
-
-```bash
-# Template for Curl | Wget
-curl -X GET https://github.com/0xp1n/ipharvest/blob/main/bin/<architecture>/ipharvest
-wget https://github.com/0xp1n/ipharvest/blob/main/bin/<architecture>/ipharvest
-
-# ARM64 (MacOS with Apple silicon)
-curl -X GET https://github.com/0xp1n/ipharvest/blob/main/bin/arm64/ipharvest
-wget https://github.com/0xp1n/ipharvest/blob/main/bin/arm64/ipharvest
-
-# x64-64 (GNU/Linux)
-curl -X GET https://github.com/0xp1n/ipharvest/blob/main/bin/x86-64/ipharvest
-wget https://github.com/0xp1n/ipharvest/blob/main/bin/x86-64/ipharvest
-
-## Move the binary to some directory defined on global variable $PATH to have it globally available in terminal
-mv ipharvest /usr/bin
-```
-
-## Compile the binary for your system
-
-In case none of the architectures provided fit for the requirements of your system just download the project and run the script located on `build/compile.sh`.
-
-### **Important:**
-
-Make sure you change the shebang `#!/opt/homebrew/bin/bash` on script `ipharvest.sh` according for your bash shell, that's usually `#!/bin/bash`. Don't use the dynamic `#!/usr/bin/env bash` because the `shc` library will not be able to compile the script.
-
-You will found the compiled binary inside `bin/` folder
-
-```bash
-git clone https://github.com/0xp1n/ipharvest.git
-
-# Change the shebang `#!/bin/bash`
-bash build/compile.sh
-
-./bin/ipharvest
-```
 
 # License
 
